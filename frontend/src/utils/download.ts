@@ -61,6 +61,17 @@ function releaseBodyPrinting() {
   }
 }
 
+// Hack to hide scrollbars when printing.
+function injectScrollbarHidingStyles(element: HTMLElement) {
+  const style = document.createElement("style");
+  style.textContent = `
+    * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+    *::-webkit-scrollbar { display: none !important; }
+  `;
+  element.prepend(style);
+  return () => style.remove();
+}
+
 /**
  * Prepare a cell element for screenshot capture.
  *
@@ -79,6 +90,7 @@ function prepareCellElementForScreenshot(
   }
   const originalOverflow = element.style.overflow;
   element.style.overflow = "auto";
+  const cleanup = injectScrollbarHidingStyles(element);
 
   return () => {
     element.classList.remove("printing-output");
@@ -86,6 +98,7 @@ function prepareCellElementForScreenshot(
       releaseBodyPrinting();
     }
     element.style.overflow = originalOverflow;
+    cleanup();
   };
 }
 
