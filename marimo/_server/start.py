@@ -214,6 +214,7 @@ def start(
     sandbox: Backend | None = None,
     startup_tip: CliTip | None = None,
     show_tracebacks: bool | None = None,
+    auto_instantiate: bool | None = None,
     execute_opengraph_generators: bool = False,
 ) -> None:
     """
@@ -308,12 +309,17 @@ def start(
     )
 
     # Apply CLI overrides for runtime config if explicitly set
-    if show_tracebacks is not None:
+    runtime_overrides = {
+        key: value
+        for key, value in (
+            ("show_tracebacks", show_tracebacks),
+            ("auto_instantiate", auto_instantiate),
+        )
+        if value is not None
+    }
+    if runtime_overrides:
         config_reader = config_reader.with_overrides(
-            cast(
-                PartialMarimoConfig,
-                {"runtime": {"show_tracebacks": show_tracebacks}},
-            )
+            cast(PartialMarimoConfig, {"runtime": runtime_overrides})
         )
 
     session_manager = SessionManager(

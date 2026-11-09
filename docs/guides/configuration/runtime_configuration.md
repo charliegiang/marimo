@@ -10,6 +10,10 @@ and when marimo runs cells.
 Toggle this setting to control whether marimo notebooks opened with `marimo
 edit` automatically run on startup
 
+To override this setting for a single session, for example to open a notebook
+that crashes the kernel on startup, pass `--no-auto-instantiate` (or
+`--auto-instantiate`) to `marimo edit`.
+
 _When sharing a notebook as an app with `marimo run`, this setting has
 no effect._
 

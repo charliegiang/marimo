@@ -78,3 +78,73 @@ def test_package_manager_follows_sandbox_backend(
     assert app.state.config_manager.get_config()["package_management"] == {
         "manager": expected_manager
     }
+
+
+@pytest.mark.parametrize(
+    ("env_value", "cli_value", "expected"),
+    [
+        (None, None, True),
+        ("false", None, False),
+        ("true", False, False),
+        ("false", True, True),
+    ],
+)
+def test_auto_instantiate_cli_override_precedence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    env_value: str | None,
+    cli_value: bool | None,
+    expected: bool,
+) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        "[tool.marimo.runtime]\nauto_instantiate = true\n"
+    )
+    monkeypatch.delenv("MARIMO_ANCESTOR_PID", raising=False)
+    monkeypatch.delenv(
+        "_MARIMO_CONFIG_OVERLOAD_RUNTIME_AUTO_INSTANTIATE", raising=False
+    )
+    if env_value is None:
+        monkeypatch.delenv("MARIMO_RUNTIME_AUTO_INSTANTIATE", raising=False)
+    else:
+        monkeypatch.setenv("MARIMO_RUNTIME_AUTO_INSTANTIATE", env_value)
+
+    with (
+        patch("marimo._server.start.CompositeLspServer"),
+        patch("marimo._server.start.initialize_fd_limit"),
+        patch("marimo._server.start.initialize_signals"),
+        patch("marimo._server.start.uvicorn.Server", autospec=True) as server,
+        patch(
+            "marimo._config.manager.UserConfigStore.save_config"
+        ) as save_config,
+    ):
+        start(
+            workspace=DirectoryWorkspace(
+                str(tmp_path), include_markdown=False
+            ),
+            mode=SessionMode.EDIT,
+            development_mode=False,
+            quiet=True,
+            include_code=True,
+            ttl_seconds=None,
+            headless=True,
+            port=2718,
+            host="127.0.0.1",
+            proxy=None,
+            watch=False,
+            cli_args={},
+            argv=[],
+            auth_token=AuthToken(""),
+            redirect_console_to_browser=False,
+            skew_protection=False,
+            auto_instantiate=cli_value,
+        )
+
+    config_manager = server.call_args.args[0].app.state.config_manager
+    assert (
+        config_manager.get_config()["runtime"]["auto_instantiate"] is expected
+    )
+    origin = config_manager.get_config_with_sources().origins[
+        ("runtime", "auto_instantiate")
+    ]
+    assert (origin == "override") is (cli_value is not None)
+    save_config.assert_not_called()
