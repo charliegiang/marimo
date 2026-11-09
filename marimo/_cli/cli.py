@@ -453,6 +453,18 @@ class _OptionalValueOption(click.Option):
     type=int,
     help="Seconds to wait before closing a session on websocket disconnect. If None is provided, sessions are not automatically closed.",
 )
+@click.option(
+    "--auto-instantiate/--no-auto-instantiate",
+    is_flag=True,
+    default=None,
+    type=bool,
+    help=(
+        "Run notebooks automatically when opened, overriding "
+        "runtime.auto_instantiate for this session only. Use "
+        "--no-auto-instantiate to open a notebook that crashes the kernel "
+        "on startup."
+    ),
+)
 @click.argument(
     "name",
     required=False,
@@ -484,6 +496,7 @@ def edit(
     asset_url: str | None,
     timeout: float | None,
     session_ttl: int | None,
+    auto_instantiate: bool | None,
     name: str | None,
     args: tuple[str, ...],
 ) -> None:
@@ -639,6 +652,7 @@ def edit(
         timeout=timeout,
         sandbox=sandbox_backend,
         startup_tip=choose_startup_tip(click.get_current_context()),
+        auto_instantiate=auto_instantiate,
     )
 
 

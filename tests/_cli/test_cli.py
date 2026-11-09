@@ -2433,3 +2433,41 @@ def test_cli_edit_with_session_ttl() -> None:
     finally:
         p.kill()
         p.wait(timeout=5)
+
+
+@pytest.mark.parametrize(
+    ("flag", "expected"),
+    [
+        ([], None),
+        (["--auto-instantiate"], True),
+        (["--no-auto-instantiate"], False),
+    ],
+)
+def test_cli_edit_auto_instantiate_flag(
+    tmp_path: Path, flag: list[str], expected: bool | None
+) -> None:
+    notebook = tmp_path / "notebook.py"
+    notebook.write_text("")
+
+    with (
+        patch(
+            "marimo._cli.cli.prompt_run_in_docker_container",
+            return_value=False,
+        ),
+        patch("marimo._cli.cli.check_app_correctness"),
+        patch("marimo._cli.cli.start") as mock_start,
+    ):
+        result = CliRunner().invoke(
+            cli_main,
+            [
+                "edit",
+                str(notebook),
+                "--headless",
+                "--no-sandbox",
+                "--skip-update-check",
+                *flag,
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert mock_start.call_args.kwargs["auto_instantiate"] is expected
